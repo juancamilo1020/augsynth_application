@@ -1,0 +1,69 @@
+---
+title: Controles sintéticos escalonados para la evaluación de efectos preliminares a proyectos del sector Ambiente y Desarrollo Sostenible - ADS del Sistema Geneneral de Regalías - SGR.
+output:
+  html_notebook: default
+  pdf_document: default
+---
+<br>
+Se propone el uso de este método como una generalización de método de control sintético ("SCM", por sus siglas en inglés), dado que la asignación, aprobación 
+y el desarrollo de los proyectos del sector ADS del SGR en los municipios y departamentos del país se presenta en distintos periodos de tiempo. Este método es tomado de Ben-Michael, Feller & Rothstein (2021), del documento "Synthetic Controls with Staggered Adoption", cuya metodología se encuentra publicada el el repositorio de GitHub: "https://github.com/ebenmichael/augsynth", en lenguaje R. 
+
+<br>
+<br>
+
+#### Instalación y descarga de paquetes necesarios
+```{r}
+#install.packages("devtools")
+#devtools::install_github("ebenmichael/augsynth")
+#install.packages('ggrepel')
+library(magrittr)
+library(dplyr)
+library(augsynth)
+library(tidyverse)
+library(haven)
+library(ggrepel)
+```
+<br>
+
+#### Importación y apertura de los datos
+```{r}
+datos <- read_dta(file="/Users/juancamiloperdomo/OneDrive/CNC/ADS-SGR/Base/Stata/Base_des_mun.dta")
+
+datos %>%
+    filter(#!State %in% c("DC", "WI"),
+           AÑO >= 2007, AÑO <= 2019) %>%
+    mutate(prim_año_ejec2 = ifelse(is.na(prim_año_ejec2), 
+                                   Inf, prim_año_ejec2),
+           cbr = 1 * (AÑO >= prim_año_ejec2)) -> analysis_df2
+```
+<br>
+
+#### Cálculo de los controles sintéticos y de los efectos del tratamiento
+Para ajustar los controles sintéticos parcialmente agrupados, necesitamos darle a la función "multisynth" una fórmula de la forma: resultado ~ tratamiento, panel.
+```{r}
+ppool_syn <- multisynth(form = Muertos_eventos_emergencia ~ cbr, unit = codmpio, time = AÑO, data = analysis_df2)
+print(ppool_syn$nu)
+ppool_syn
+```
+<br>
+
+#### Cálculo de la función resumen
+Usando la función de 'summary', se hace el cálculo de los efectos del tratamiento y los errores estándar y los intervalos de confianza para todas las unidades tratadas, así como el promedio.
+```{r}
+ppool_syn_summ <- summary(ppool_syn)
+ppool_syn_summ
+```
+<br>
+
+#### Cálculo de los controles sintéticos y de los efectos del tratamiento
+```{r}
+plot(ppool_syn_summ)
+```
+
+<br>
+
+#### Cálculo de los controles sintéticos y de los eectos del tratamiento
+```{r}
+plot(ppool_syn_summ, levels = "Average")
+```
+
