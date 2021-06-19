@@ -1,0 +1,29 @@
+#install.packages("devtools")
+#devtools::install_github("ebenmichael/augsynth")
+#install.packages('ggrepel')
+library(magrittr)
+library(dplyr)
+library(augsynth)
+library(tidyverse)
+library(haven)
+library(ggrepel)
+
+datos <- read_dta(file="/Users/juancamiloperdomo/OneDrive/CNC/ADS-SGR/Base/Stata/Base_des_mun.dta")
+
+datos %>%
+    filter(#!State %in% c("DC", "WI"),
+           AÑO >= 2007, AÑO <= 2019) %>%
+    mutate(prim_año_ejec2 = ifelse(is.na(prim_año_ejec2), 
+                                   Inf, prim_año_ejec2),
+           cbr = 1 * (AÑO >= prim_año_ejec2)) -> analysis_df2
+           
+ppool_syn <- multisynth(form = Muertos_eventos_emergencia ~ cbr, unit = codmpio, time = AÑO, data = analysis_df2)
+print(ppool_syn$nu)
+ppool_syn
+
+ppool_syn_summ <- summary(ppool_syn)
+ppool_syn_summ
+
+plot(ppool_syn_summ)
+
+plot(ppool_syn_summ, levels = "Average")
